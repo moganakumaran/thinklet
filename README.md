@@ -182,41 +182,6 @@ calls and 335 replays/judges covering the full waste/risk taxonomy:
 7. **Try it live**: scroll up, type a prompt in the top panel, run the audit,
    watch the DAG materialize.
 
-## Architecture
-
-```mermaid
-flowchart LR
-  UI[Try Thinklet UI] -- multipart --> CAP[/audit/capture/]
-  SDK[Thinklet SDK] -- POST /spans --> API[FastAPI]
-  CAP --> DB[(DuckDB)]
-  API --> DB
-  SCOPED[/audit/{id}/replay /judge/] -- per-span --> DB
-  GLOBAL[/replay/run /judge/run/] -- batch --> DB
-  API --> DASH[React Dashboard]
-  DASH --> TRY[Try Thinklet panel]
-  DASH --> WR[Waste Report]
-  DASH --> WM[Waste Map]
-  DASH --> TF[Trace Feed]
-```
-
-- **SDK** (`sdk/thinklet_sdk/`) wraps `google-genai`. Default model is
-  `gemini-3.5-flash`. Accepts `prompt=…` for text or `contents=…` for
-  multimodal (Gemini-native Parts list with `inline_data` blobs for images).
-- **Backend** (`backend/app/`) is FastAPI + DuckDB single-file. Two surface
-  areas:
-  - **Global** (`/spans`, `/replay/run`, `/judge/run`) — used by capture
-    scripts and CI-style batch audits.
-  - **Scoped** (`/audit/capture`, `/audit/{span_id}/replay`,
-    `/audit/{span_id}/judge`) — used by the Try Thinklet UI for per-call
-    auditing.
-- **Replay engine** fans out each span to all *lower* thinking budgets.
-  Real-API failures (network, quota) fall back to deterministic demo replays
-  so the pipeline always completes.
-- **Judge** is deterministic-first (exact / JSON / numeric), with a Gemini
-  LLM judge as the fallback. Default 3 votes with shuffled A/B order;
-  configurable down to 1 via env for tight rate-limit budgets.
-- **Dashboard** is React + Vite + Recharts. Hand-drawn HTML/CSS DAG — no
-  graph libraries.
 
 ### Thinking-budget mapping
 
